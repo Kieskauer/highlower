@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Höher Tiefer – Deutsche Twitch Streamer</title>
+<meta name="description" content="Errate, welcher deutsche Twitch-Streamer mehr Follower oder Zuschauer hat.">
+<meta name="theme-color" content="#0e0e10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Höher Tiefer – Deutsche Twitch Streamer
+   Design tokens
+   -------------------------------------------------------------------------
+   Farbe:   --bg #0e0e10 · --bg-panel #18181b · --accent #9146FF (Twitch-Lila)
+            --accent-2 #ff3d81 (Signal-Magenta für Richtig/Falsch-Momente)
+            --higher #00d9a3 (grün) · --lower #ff5c72 (rot)
+   Typo:    Display  -> "Space Grotesk" (Zahlen & Headlines, geometrisch, klar)
+            Body     -> "Inter"
+            Zahlen   -> "JetBrains Mono" (tabellarische Follower-Zahlen)
+   Signatur: der pulsierende VS-Ring zwischen den Karten + die Ziffern-
+             Rolladen-Animation beim Aufdecken des Werts.
+   ========================================================================== */
+
+:root {
+  --bg: #0e0e10;
+  --bg-panel: #18181b;
+  --bg-panel-2: #202024;
+  --border: rgba(255,255,255,0.08);
+  --text: #efeff1;
+  --text-dim: #adadb8;
+  --accent: #9146FF;
+  --accent-soft: rgba(145, 70, 255, 0.18);
+  --accent-2: #ff3d81;
+  --higher: #00d9a3;
+  --lower: #ff5c72;
+  --gold: #ffb84d;
+
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+
+  --shadow-soft: 0 20px 60px -20px rgba(0,0,0,0.6);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+}
+
+/* Ambient background */
+.bg-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(600px 400px at 15% -5%, rgba(145,70,255,0.20), transparent 60%),
+    radial-gradient(500px 400px at 90% 10%, rgba(255,61,129,0.12), transparent 60%),
+    radial-gradient(700px 500px at 50% 110%, rgba(145,70,255,0.10), transparent 60%);
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  min-height: 100vh;
+}
+
+.screen { display: none; animation: fadeIn .35s ease; }
+.screen.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+}
+
+/* ---------- Menu ---------- */
+.brand { text-align: center; margin: 28px 0 30px; }
+.brand-mark {
+  width: 56px; height: 56px; margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); border-radius: 16px;
+  color: var(--accent);
+}
+.brand-icon { width: 30px; height: 30px; }
+.brand h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.4rem;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.brand h1 .accent { color: var(--accent); }
+.brand-sub { color: var(--text-dim); margin: 8px 0 0; font-size: 0.98rem; }
+
+.menu-card {
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  box-shadow: var(--shadow-soft);
+}
+
+.field-group { margin-bottom: 22px; }
+.field-label {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.radio-row { display: flex; gap: 10px; }
+.radio-pill {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+}
+.radio-pill input { position: absolute; opacity: 0; }
+.radio-pill span {
+  display: flex; align-items: center; justify-content: center;
+  padding: 13px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all .18s ease;
+}
+.radio-pill input:checked + span {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.radio-pill input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.select-wrap select {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23adadb8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  appearance: none;
+  cursor: pointer;
+}
+.select-wrap select:focus-visible { outline: 2px solid var(--accent); }
+
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.98rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, background .15s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:active { transform: scale(0.97); }
+.btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.btn-block { width: 100%; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 24px -8px rgba(145,70,255,0.7);
+}
+.btn-primary:hover { background: #a166ff; }
+
+.hint-key {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  background: rgba(255,255,255,0.18);
+  padding: 2px 7px;
+  border-radius: 5px;
+  opacity: 0.8;
+}
+
+.btn-ghost {
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--bg-panel-2); }
+.btn-small { padding: 8px 14px; font-size: 0.85rem; }
+
+.menu-secondary {
+  display: flex; gap: 10px; margin-top: 16px;
+}
+.menu-secondary .btn { flex: 1; }
+.menu-secondary .btn:last-child { flex: 0 0 auto; padding: 14px; }
+
+.data-caveat {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.76rem;
+  margin-top: 18px;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+.twitch-connect-row {
+  text-align: center;
+  margin-top: 14px;
+}
+.twitch-status-text {
+  color: var(--text-dim);
+  font-size: 0.76rem;
+  margin: 8px 0 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+
+/* ---------- Game topbar ---------- */
+.game-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.icon-btn {
+  width: 40px; height: 40px; flex: 0 0 auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--bg-panel-2); }
+
+.stat-strip {
+  flex: 1;
+  display: flex;
+  justify-content: space-around;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 6px;
+}
+.stat { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.stat-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+.stat-value { font-family: var(--font-mono); font-weight: 700; font-size: 1.02rem; }
+
+.compare-caption {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  margin: 0 0 14px;
+}
+.compare-caption #compare-label { color: var(--accent); font-weight: 600; }
+
+/* ---------- Arena / cards ---------- */
+.arena {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.stream-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 14px 20px;
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-soft);
+  transition: border-color .2s ease, transform .12s ease;
+}
+.guess-card { cursor: pointer; }
+.guess-card:hover { border-color: rgba(145,70,255,0.5); }
+.guess-card:active { transform: scale(0.985); }
+
+.card-media { position: relative; margin-bottom: 12px; }
+.avatar {
+  width: 84px; height: 84px;
+  margin: 0 auto;
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.7rem;
+  color: #fff;
+  box-shadow: 0 8px 22px -6px rgba(0,0,0,0.5);
+  border: 2px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+}
+.live-badge {
+  position: absolute;
+  bottom: -6px; left: 50%; transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.stream-name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 4px 0 2px;
+  word-break: break-word;
+}
+.stream-category {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin: 0 0 14px;
+}
+
+.value-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.value-number {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.55rem;
+  letter-spacing: -0.02em;
+}
+.value-number.mystery {
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+}
+.value-unit {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.vs-divider {
+  display: flex; align-items: center; justify-content: center;
+}
+.vs-ring {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: var(--bg-panel);
+  border: 1px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 0 rgba(145,70,255,0.5);
+  animation: vsPulse 2.4s ease-in-out infinite;
+}
+.vs-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+@keyframes vsPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(145,70,255,0.45); }
+  50% { box-shadow: 0 0 0 10px rgba(145,70,255,0); }
+}
+
+.result-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+}
+.result-flash.show { opacity: 1; }
+.result-flash.correct { background: rgba(0,217,163,0.16); border: 2px solid var(--higher); color: var(--higher); }
+.result-flash.wrong { background: rgba(255,92,114,0.16); border: 2px solid var(--lower); color: var(--lower); }
+
+/* card slide/flip on new round */
+.stream-card.slide-in { animation: slideIn .4s cubic-bezier(.2,.8,.2,1); }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(24px) scale(0.97); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.stream-card.card-flip { animation: cardFlip .5s ease; }
+@keyframes cardFlip {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
+}
+.stream-card.shake { animation: shake .4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ---------- Karten als Klick-Ziele (ersetzen die frühere Höher/Niedriger-Buttons) ---------- */
+.key-hint {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  margin-top: 20px;
+}
+.key-hint kbd {
+  font-family: var(--font-mono);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* ---------- Game over ---------- */
+#screen-gameover { padding-top: 60px; }
+.gameover-card {
+  border-radius: var(--radius-lg);
+  padding: 34px 26px;
+  text-align: center;
+  box-shadow: var(--shadow-soft);
+}
+.go-eyebrow {
+  color: var(--accent);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.go-title {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  margin: 0 0 24px;
+}
+.go-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.go-stat {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 8px;
+}
+.go-stat-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+.go-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.go-newrecord {
+  color: var(--gold);
+  font-weight: 700;
+  min-height: 1.4em;
+  margin: 14px 0 6px;
+}
+.go-actions { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.go-actions-row { display: flex; gap: 10px; }
+.go-actions-row .btn { flex: 1; }
+
+/* ---------- Subpages: Leaderboard / Browse ---------- */
+.subpage-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px;
+}
+.subpage-header h2 {
+  font-family: var(--font-display);
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.leaderboard-list, .browse-list {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.lb-item, .browse-item {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+.lb-mode { flex: 1; }
+.lb-mode-name { font-weight: 700; }
+.lb-mode-date { font-size: 0.75rem; color: var(--text-dim); }
+.lb-score { font-family: var(--font-mono); font-weight: 700; font-size: 1.2rem; color: var(--accent); }
+.lb-empty, .browse-empty { color: var(--text-dim); text-align: center; padding: 30px 0; }
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-family: var(--font-body);
+  margin-bottom: 16px;
+}
+.search-input:focus-visible { outline: 2px solid var(--accent); }
+
+.browse-item .avatar { width: 44px; height: 44px; font-size: 1rem; border-radius: 12px; flex: 0 0 auto; }
+.browse-info { flex: 1; min-width: 0; }
+.browse-name { font-weight: 700; font-size: 0.95rem; }
+.browse-cat { font-size: 0.72rem; color: var(--text-dim); }
+.browse-stats { text-align: right; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-dim); }
+.browse-stats b { display: block; color: var(--text); font-size: 0.92rem; }
+.browse-link { color: var(--accent); text-decoration: none; }
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,0.6);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  width: 100%; max-width: 380px;
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  box-shadow: var(--shadow-soft);
+}
+.modal-card h2 { font-family: var(--font-display); margin: 0 0 18px; font-size: 1.25rem; }
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.92rem;
+}
+.setting-row:last-of-type { border-bottom: none; }
+.danger-row { color: var(--lower); }
+
+.switch { position: relative; width: 44px; height: 26px; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; }
+.switch-track {
+  position: absolute; inset: 0;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: background .18s ease;
+}
+.switch-thumb {
+  position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .18s ease;
+}
+.switch input:checked + .switch-track { background: var(--accent); }
+.switch input:checked + .switch-track .switch-thumb { transform: translateX(18px); }
+
+#modal-settings .btn-block { margin-top: 20px; }
+
+/* ---------- Confetti ---------- */
+#confetti-canvas {
+  position: fixed; inset: 0; z-index: 60;
+  pointer-events: none;
+  display: none;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 480px) {
+  .brand h1 { font-size: 1.9rem; }
+  .avatar { width: 66px; height: 66px; font-size: 1.3rem; }
+  .value-number { font-size: 1.2rem; }
+  .stream-name { font-size: 0.88rem; }
+  .stream-category { font-size: 0.62rem; margin-bottom: 8px; }
+  .vs-ring { width: 36px; height: 36px; }
+  .vs-text { font-size: 0.65rem; }
+  .stream-card { padding: 12px 8px 14px; }
+  .arena { gap: 6px; }
+  .stat-value { font-size: 0.85rem; }
+  .stat-label { font-size: 0.55rem; }
+  .go-stats { gap: 8px; }
+  .go-stat-value { font-size: 1.1rem; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- Ambient background glow -->
+<div class="bg-glow" aria-hidden="true"></div>
+
+<div id="app">
+
+  <!-- ============ HAUPTMENÜ ============ -->
+  <section id="screen-menu" class="screen active" aria-label="Hauptmenü">
+    <header class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" class="brand-icon" aria-hidden="true"><path d="M4 2h16l-3 6v9l-4 3v-3H8l-4 4V2z" fill="currentColor" opacity=".15"/><path d="M6 4h12l-2 4.5V16l-2.5 2v-2H9l-3 3V4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+      <h1>Höher <span class="accent">Tiefer</span></h1>
+      <p class="brand-sub">Deutsche Twitch-Streamer im Zahlen-Duell</p>
+    </header>
+
+    <div class="menu-card glass">
+      <div class="field-group">
+        <span class="field-label">Vergleichswert</span>
+        <div class="radio-row" role="radiogroup" aria-label="Vergleichswert">
+          <label class="radio-pill">
+            <input type="radio" name="compareMode" value="followers" checked>
+            <span>Follower</span>
+          </label>
+          <label class="radio-pill">
+            <input type="radio" name="compareMode" value="averageViewers">
+            <span>Ø Zuschauer</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="roundSelect">Rundenlänge</label>
+        <div class="select-wrap">
+          <select id="roundSelect">
+            <option value="5">5 Runden</option>
+            <option value="10" selected>10 Runden</option>
+            <option value="20">20 Runden</option>
+            <option value="0">Endlos</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="btn-start" class="btn btn-primary btn-block">
+        <span>Spiel starten</span>
+        <kbd class="hint-key">Enter</kbd>
+      </button>
+
+      <div class="menu-secondary">
+        <button id="btn-leaderboard" class="btn btn-ghost">Bestenliste</button>
+        <button id="btn-browse" class="btn btn-ghost">Streamer</button>
+        <button id="btn-settings" class="btn btn-ghost" aria-label="Einstellungen">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 13.5a7.6 7.6 0 0 0 .1-1.5 7.6 7.6 0 0 0-.1-1.5l2-1.6-2-3.4-2.4 1a7.9 7.9 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5a7.9 7.9 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0-.1 1.5 7.6 7.6 0 0 0 .1 1.5l-2 1.6 2 3.4 2.4-1c.75.65 1.63 1.16 2.6 1.5l.4 2.5h4l.4-2.5a7.9 7.9 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <p class="data-caveat">Follower-Zahlen recherchiert (Stand Jan. 2026) · Ø-Zuschauerwerte sind Schätzungen fürs Gameplay</p>
+
+    <div class="twitch-connect-row">
+      <button id="btn-twitch-connect" class="btn btn-ghost btn-small">Mit Twitch verbinden</button>
+      <p id="twitch-status" class="twitch-status-text">Ohne Verbindung werden Initialen-Avatare angezeigt.</p>
+    </div>
+  </section>
+
+  <!-- ============ SPIEL ============ -->
+  <section id="screen-game" class="screen" aria-label="Spiel">
+    <div class="game-topbar">
+      <button id="btn-quit" class="icon-btn" aria-label="Zurück zum Menü">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="stat-strip">
+        <div class="stat"><span class="stat-label">Punkte</span><span id="stat-score" class="stat-value">0</span></div>
+        <div class="stat"><span class="stat-label">Serie</span><span id="stat-streak" class="stat-value">0</span></div>
+        <div class="stat"><span class="stat-label">Highscore</span><span id="stat-highscore" class="stat-value">0</span></div>
+        <div class="stat"><span class="stat-label">Runde</span><span id="stat-round" class="stat-value">1/10</span></div>
+      </div>
+      <button id="btn-mute" class="icon-btn" aria-label="Sound umschalten">
+        <svg id="icon-sound-on" viewBox="0 0 24 24" width="20" height="20"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <svg id="icon-sound-off" viewBox="0 0 24 24" width="20" height="20" style="display:none"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor"/><path d="M16 9l4 6M20 9l-4 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <p class="compare-caption">Wer hat mehr <span id="compare-label">Follower</span>?</p>
+
+    <div class="arena">
+      <article class="stream-card guess-card" id="card-left" tabindex="0" role="button" aria-label="Linken Streamer auswählen (niedriger)">
+        <div class="card-media">
+          <div class="avatar" id="avatar-left"></div>
+          <div class="live-badge">TWITCH</div>
+        </div>
+        <h2 class="stream-name" id="name-left">—</h2>
+        <p class="stream-category" id="category-left">—</p>
+        <div class="value-box">
+          <span class="value-number" id="value-left">0</span>
+          <span class="value-unit" id="unit-left">Follower</span>
+        </div>
+      </article>
+
+      <div class="vs-divider">
+        <span class="vs-ring"><span class="vs-text">VS</span></span>
+      </div>
+
+      <article class="stream-card guess-card" id="card-right" tabindex="0" role="button" aria-label="Rechten Streamer auswählen (höher)">
+        <div class="card-media">
+          <div class="avatar" id="avatar-right"></div>
+          <div class="live-badge">TWITCH</div>
+        </div>
+        <h2 class="stream-name" id="name-right">—</h2>
+        <p class="stream-category" id="category-right">—</p>
+        <div class="value-box">
+          <span class="value-number mystery" id="value-right">???</span>
+          <span class="value-unit" id="unit-right">Follower</span>
+        </div>
+        <div class="result-flash" id="result-flash"></div>
+      </article>
+    </div>
+
+    <p class="key-hint">Klicke den Streamer, der laut dir mehr hat · Tastatur: <kbd>←</kbd> <kbd>→</kbd></p>
+  </section>
+
+  <!-- ============ GAME OVER ============ -->
+  <section id="screen-gameover" class="screen" aria-label="Spielende">
+    <div class="gameover-card glass">
+      <p class="go-eyebrow" id="go-eyebrow">Runde beendet</p>
+      <h2 class="go-title">Spiel vorbei!</h2>
+      <div class="go-stats">
+        <div class="go-stat">
+          <span class="go-stat-value" id="go-score">0</span>
+          <span class="go-stat-label">Punkte</span>
+        </div>
+        <div class="go-stat">
+          <span class="go-stat-value" id="go-accuracy">0%</span>
+          <span class="go-stat-label">Genauigkeit</span>
+        </div>
+        <div class="go-stat">
+          <span class="go-stat-value" id="go-highscore">0</span>
+          <span class="go-stat-label">Highscore</span>
+        </div>
+      </div>
+      <p class="go-newrecord" id="go-newrecord">🎉 Neuer Highscore!</p>
+      <div class="go-actions">
+        <button id="btn-again" class="btn btn-primary btn-block">Nochmal spielen</button>
+        <div class="go-actions-row">
+          <button id="btn-share" class="btn btn-ghost">Teilen</button>
+          <button id="btn-menu" class="btn btn-ghost">Hauptmenü</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BESTENLISTE ============ -->
+  <section id="screen-leaderboard" class="screen" aria-label="Bestenliste">
+    <div class="subpage-header">
+      <button class="icon-btn back-btn" data-back aria-label="Zurück">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h2>Bestenliste</h2>
+    </div>
+    <div class="leaderboard-list" id="leaderboard-list"></div>
+  </section>
+
+  <!-- ============ STREAMER-ÜBERSICHT ============ -->
+  <section id="screen-browse" class="screen" aria-label="Streamer-Übersicht">
+    <div class="subpage-header">
+      <button class="icon-btn back-btn" data-back aria-label="Zurück">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h2>Streamer</h2>
+    </div>
+    <input type="search" id="browse-search" class="search-input" placeholder="Streamer suchen…">
+    <div class="browse-list" id="browse-list"></div>
+  </section>
+
+  <!-- ============ EINSTELLUNGEN ============ -->
+  <div id="modal-settings" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card glass" role="dialog" aria-label="Einstellungen">
+      <h2>Einstellungen</h2>
+      <div class="setting-row">
+        <span>Sound-Effekte</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-sound" checked>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <span>Zunehmende Schwierigkeit</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-difficulty" checked>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+      </div>
+      <div class="setting-row danger-row">
+        <span>Highscores zurücksetzen</span>
+        <button id="btn-reset" class="btn btn-ghost btn-small">Zurücksetzen</button>
+      </div>
+      <button id="btn-close-settings" class="btn btn-primary btn-block">Fertig</button>
+    </div>
+  </div>
+
+  <!-- Konfetti-Layer -->
+  <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+  <!-- Live region für Screenreader -->
+  <div id="sr-live" class="sr-only" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+/* ==========================================================================
+   Höher Tiefer – Deutsche Twitch Streamer
+   Reine Vanilla-JS-Logik, sauber getrennt von der Darstellung (Renderer-
+   Funktionen unten im Abschnitt "RENDERING"). Kein Framework, keine
+   externen Abhängigkeiten außer den Google Fonts.
+   ========================================================================== */
+
+(() => {
+  "use strict";
+
+  /* ------------------------------------------------------------------ *
+   * 1) KONSTANTEN & STORAGE-KEYS
+   * ------------------------------------------------------------------ */
+  const STORAGE_KEYS = {
+    highscores: "hltw_highscores_v1",   // { followers: {score, round, date}, averageViewers: {...} }
+    settings: "hltw_settings_v1",       // { sound, difficulty }
+  };
+
+  const UNIT_LABEL = {
+    followers: "Follower",
+    averageViewers: "Ø Zuschauer",
+  };
+
+  const AVATAR_PALETTE = [
+    ["#9146FF", "#6b2fd4"], ["#ff3d81", "#c22461"], ["#00d9a3", "#00a97f"],
+    ["#ffb84d", "#e0912a"], ["#3d9bff", "#1f6fd4"], ["#ff6b4d", "#d94e2f"],
+    ["#c04dff", "#8f2fd4"], ["#4dffb8", "#20cf8f"],
+  ];
+
+  /* ------------------------------------------------------------------ *
+   * 1b) TWITCH-API-KONFIGURATION (Implicit Grant Flow, wie in Viewcount
+   *     Guessr) – für echte Profilbilder statt Initialen-Avatare.
+   *
+   *     So richtest du es ein:
+   *     1. App unter https://dev.twitch.tv/console/apps registrieren.
+   *     2. Als "OAuth Redirect URL" GENAU die URL eintragen, unter der
+   *        diese Datei später erreichbar ist (z. B.
+   *        https://kieskauer.github.io/hoeher-tiefer-twitch/index.html).
+   *        Muss https sein (oder http://localhost zum lokalen Testen).
+   *     3. Die Client-ID unten eintragen. Kein Client Secret nötig –
+   *        das gehört NIE in Frontend-Code.
+   *     Ohne gültige Client-ID läuft das Spiel trotzdem, dann eben mit
+   *     den Initialen-Avataren als Fallback.
+   * ------------------------------------------------------------------ */
+  const TWITCH_CONFIG = {
+    clientId: "DEINE_TWITCH_CLIENT_ID", // <- hier eintragen
+    get redirectUri() {
+      return window.location.origin + window.location.pathname;
+    },
+  };
+  const TWITCH_TOKEN_KEY = "hltw_twitch_token_v1";
+
+  /* ------------------------------------------------------------------ *
+   * 2) STATE
+   * ------------------------------------------------------------------ */
+  const state = {
+    allStreamers: [],
+    compareMode: "followers",
+    roundsTotal: 10,          // 0 = Endlos
+    currentRound: 0,
+    score: 0,
+    streak: 0,
+    correctCount: 0,
+    usedNames: new Set(),
+    left: null,
+    right: null,
+    busy: false,              // sperrt Eingaben während Animation
+    settings: { sound: true, difficulty: true },
+  };
+
+  /* ------------------------------------------------------------------ *
+   * 3) DOM-REFERENZEN
+   * ------------------------------------------------------------------ */
+  const $ = (sel) => document.querySelector(sel);
+  const screens = {
+    menu: $("#screen-menu"),
+    game: $("#screen-game"),
+    gameover: $("#screen-gameover"),
+    leaderboard: $("#screen-leaderboard"),
+    browse: $("#screen-browse"),
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach((s) => s.classList.remove("active"));
+    screens[name].classList.add("active");
+    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 4) DATEN (eingebettet, damit die Datei ohne Server/fetch() funktioniert)
+   *    followers: recherchiert, Stand Jan. 2026 (Quelle: giga.de Top-25-Liste)
+   *    averageViewers: plausible Schätzwerte fürs Gameplay (keine live-
+   *    verifizierten Zahlen) – siehe Hinweis im Hauptmenü.
+   * ------------------------------------------------------------------ */
+  const STREAMER_DATA = [
+    { name: "MontanaBlack88", followers: 5730000, averageViewers: 8500, twitchUrl: "https://www.twitch.tv/montanablack88", category: "Reactions / Just Chatting" },
+    { name: "Trymacs", followers: 3860000, averageViewers: 12000, twitchUrl: "https://www.twitch.tv/trymacs", category: "Variety / IRL" },
+    { name: "Papaplatte", followers: 3070000, averageViewers: 9000, twitchUrl: "https://www.twitch.tv/papaplatte", category: "Just Chatting / Gaming" },
+    { name: "TheRealKnossi", followers: 2440000, averageViewers: 7500, twitchUrl: "https://www.twitch.tv/therealknossi", category: "Casino / Entertainment" },
+    { name: "BastiGHG", followers: 2360000, averageViewers: 4200, twitchUrl: "https://www.twitch.tv/bastighg", category: "Gaming" },
+    { name: "eliasn97", followers: 2260000, averageViewers: 6000, twitchUrl: "https://www.twitch.tv/eliasn97", category: "Just Chatting / Special Events" },
+    { name: "rewinside", followers: 1940000, averageViewers: 3800, twitchUrl: "https://www.twitch.tv/rewinside", category: "Gaming" },
+    { name: "Amar", followers: 1850000, averageViewers: 5500, twitchUrl: "https://www.twitch.tv/amar", category: "Just Chatting" },
+    { name: "Letshe", followers: 1830000, averageViewers: 3200, twitchUrl: "https://www.twitch.tv/letshe", category: "Gaming" },
+    { name: "Gronkh", followers: 1780000, averageViewers: 4800, twitchUrl: "https://www.twitch.tv/gronkh", category: "Let's Plays" },
+    { name: "Elotrix", followers: 1690000, averageViewers: 3500, twitchUrl: "https://www.twitch.tv/elotrix", category: "Gaming" },
+    { name: "HandOfBlood", followers: 1570000, averageViewers: 3000, twitchUrl: "https://www.twitch.tv/handofblood", category: "Gaming" },
+    { name: "Ungespielt", followers: 1480000, averageViewers: 1800, twitchUrl: "https://www.twitch.tv/ungespielt", category: "Gaming" },
+    { name: "rezonfn", followers: 1360000, averageViewers: 2600, twitchUrl: "https://www.twitch.tv/rezonfn", category: "Fortnite / Gaming" },
+    { name: "MckyTV", followers: 1340000, averageViewers: 2900, twitchUrl: "https://www.twitch.tv/mckytv", category: "Gaming" },
+    { name: "xRohat", followers: 1230000, averageViewers: 2200, twitchUrl: "https://www.twitch.tv/xrohat", category: "Gaming" },
+    { name: "sascha", followers: 1220000, averageViewers: 1700, twitchUrl: "https://www.twitch.tv/sascha", category: "Just Chatting" },
+    { name: "zarbex", followers: 1180000, averageViewers: 2100, twitchUrl: "https://www.twitch.tv/zarbex", category: "Gaming" },
+    { name: "SidneyEweka", followers: 1180000, averageViewers: 1600, twitchUrl: "https://www.twitch.tv/sidneyeweka", category: "Just Chatting" },
+    { name: "LetsHugoTV", followers: 1160000, averageViewers: 1400, twitchUrl: "https://www.twitch.tv/letshugotv", category: "Gaming" },
+    { name: "RevedTV", followers: 1160000, averageViewers: 5000, twitchUrl: "https://www.twitch.tv/revedtv", category: "IRL / Special Events" },
+    { name: "Vadeal", followers: 1090000, averageViewers: 1300, twitchUrl: "https://www.twitch.tv/vadeal", category: "Gaming" },
+    { name: "NiklasWilson", followers: 1070000, averageViewers: 1500, twitchUrl: "https://www.twitch.tv/niklaswilson", category: "Gaming" },
+    { name: "HoneyPuu", followers: 1030000, averageViewers: 1100, twitchUrl: "https://www.twitch.tv/honeypuu", category: "Just Chatting" },
+    { name: "INSCOPE21TV", followers: 1020000, averageViewers: 2400, twitchUrl: "https://www.twitch.tv/inscope21tv", category: "Gaming / Special Events" },
+  ];
+
+  function loadStreamers() {
+    state.allStreamers = STREAMER_DATA.filter((s) => s.averageViewers >= 100);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 4b) TWITCH-LOGIN (Implicit Grant Flow) + ECHTE PROFILBILDER
+   * ------------------------------------------------------------------ */
+  function loginFromUrl(twitchUrl) {
+    return twitchUrl.split("/").filter(Boolean).pop().toLowerCase();
+  }
+
+  function hasValidClientId() {
+    return TWITCH_CONFIG.clientId && !TWITCH_CONFIG.clientId.startsWith("DEINE_");
+  }
+
+  function initiateTwitchLogin() {
+    if (!hasValidClientId()) {
+      alert(
+        "Es ist noch keine Twitch-Client-ID hinterlegt.\n\n" +
+        "1. App unter https://dev.twitch.tv/console/apps registrieren\n" +
+        "2. OAuth Redirect URL exakt auf diese Seiten-URL setzen:\n" + TWITCH_CONFIG.redirectUri +
+        "\n3. Die Client-ID in TWITCH_CONFIG im Code eintragen."
+      );
+      return;
+    }
+    const params = new URLSearchParams({
+      client_id: TWITCH_CONFIG.clientId,
+      redirect_uri: TWITCH_CONFIG.redirectUri,
+      response_type: "token",
+      scope: "",
+    });
+    window.location.href = `https://id.twitch.tv/oauth2/authorize?${params.toString()}`;
+  }
+
+  function consumeTokenFromUrlHash() {
+    if (window.location.hash.includes("access_token")) {
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const token = hashParams.get("access_token");
+      if (token) {
+        localStorage.setItem(TWITCH_TOKEN_KEY, token);
+        history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+    }
+    return localStorage.getItem(TWITCH_TOKEN_KEY);
+  }
+
+  function disconnectTwitch() {
+    localStorage.removeItem(TWITCH_TOKEN_KEY);
+    state.allStreamers.forEach((s) => delete s.imageUrl);
+    updateTwitchStatus(false);
+  }
+
+  function updateTwitchStatus(connected, message) {
+    const btn = $("#btn-twitch-connect");
+    const status = $("#twitch-status");
+    if (!btn || !status) return;
+    btn.textContent = connected ? "Twitch-Verbindung trennen" : "Mit Twitch verbinden";
+    status.textContent =
+      message || (connected
+        ? "✅ Verbunden – echte Profilbilder aktiv."
+        : "Ohne Verbindung werden Initialen-Avatare angezeigt.");
+  }
+
+  async function fetchTwitchAvatars() {
+    const token = consumeTokenFromUrlHash();
+    if (!hasValidClientId()) {
+      updateTwitchStatus(false, "Keine Client-ID hinterlegt – siehe Kommentar im Code.");
+      return;
+    }
+    if (!token) {
+      updateTwitchStatus(false);
+      return;
+    }
+    updateTwitchStatus(true, "⏳ Lade Profilbilder von Twitch …");
+    try {
+      const logins = state.allStreamers.map((s) => loginFromUrl(s.twitchUrl));
+      const query = logins.map((l) => `login=${encodeURIComponent(l)}`).join("&");
+      const res = await fetch(`https://api.twitch.tv/helix/users?${query}`, {
+        headers: {
+          "Client-Id": TWITCH_CONFIG.clientId,
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        disconnectTwitch();
+        updateTwitchStatus(false, "Sitzung abgelaufen – bitte erneut verbinden.");
+        return;
+      }
+      if (!res.ok) throw new Error("Helix HTTP " + res.status);
+      const data = await res.json();
+      const byLogin = {};
+      (data.data || []).forEach((u) => { byLogin[u.login.toLowerCase()] = u.profile_image_url; });
+      let matched = 0;
+      state.allStreamers.forEach((s) => {
+        const url = byLogin[loginFromUrl(s.twitchUrl)];
+        if (url) { s.imageUrl = url; matched++; }
+      });
+      updateTwitchStatus(true, `✅ Verbunden – ${matched}/${state.allStreamers.length} Profilbilder geladen.`);
+      // Falls die Streamer-Übersicht gerade offen ist, mit Bildern neu rendern
+      if (screens.browse.classList.contains("active")) {
+        renderBrowseList($("#browse-search").value);
+      }
+    } catch (err) {
+      console.error("Twitch-Profilbilder konnten nicht geladen werden:", err);
+      updateTwitchStatus(false, "⚠️ Fehler beim Laden der Profilbilder.");
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 5) STORAGE HELFER
+   * ------------------------------------------------------------------ */
+  function loadJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  function saveJSON(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch { /* localStorage evtl. nicht verfügbar */ }
+  }
+
+  function loadSettings() {
+    state.settings = loadJSON(STORAGE_KEYS.settings, { sound: true, difficulty: true });
+    $("#toggle-sound").checked = state.settings.sound;
+    $("#toggle-difficulty").checked = state.settings.difficulty;
+    updateSoundIcon();
+  }
+  function saveSettings() {
+    saveJSON(STORAGE_KEYS.settings, state.settings);
+  }
+
+  function getHighscore(mode) {
+    const all = loadJSON(STORAGE_KEYS.highscores, {});
+    return all[mode] || { score: 0, round: "-", date: null };
+  }
+  function setHighscoreIfBetter(mode, score, roundsLabel) {
+    const all = loadJSON(STORAGE_KEYS.highscores, {});
+    const current = all[mode] || { score: 0 };
+    let isNew = false;
+    if (score > current.score) {
+      all[mode] = { score, round: roundsLabel, date: new Date().toISOString() };
+      saveJSON(STORAGE_KEYS.highscores, all);
+      isNew = true;
+    }
+    return isNew;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 6) SOUND (synthetisiert via WebAudio, keine externen Dateien nötig)
+   * ------------------------------------------------------------------ */
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) audioCtx = new Ctx();
+    }
+    return audioCtx;
+  }
+  function beep(freq, duration, type = "sine", volume = 0.15, delay = 0) {
+    if (!state.settings.sound) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.value = volume;
+    osc.connect(gain).connect(ctx.destination);
+    const t0 = ctx.currentTime + delay;
+    gain.gain.setValueAtTime(volume, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.02);
+  }
+  function playCorrect() {
+    beep(523.25, 0.12, "triangle", 0.16, 0);
+    beep(783.99, 0.18, "triangle", 0.16, 0.08);
+  }
+  function playWrong() {
+    beep(220, 0.22, "sawtooth", 0.12, 0);
+    beep(164.81, 0.28, "sawtooth", 0.1, 0.1);
+  }
+  function playClick() {
+    beep(660, 0.05, "square", 0.06, 0);
+  }
+
+  function updateSoundIcon() {
+    $("#icon-sound-on").style.display = state.settings.sound ? "" : "none";
+    $("#icon-sound-off").style.display = state.settings.sound ? "none" : "";
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 7) AVATAR-GENERIERUNG
+   * Statt echter Fotos (Datenschutz/Lizenzfragen bei Drittbildern) nutzen
+   * wir deterministische Initialen-Avatare – dadurch funktioniert das Spiel
+   * auch vollständig offline/als PWA ohne externe Bildquellen.
+   * ------------------------------------------------------------------ */
+  function hashString(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = (h << 5) - h + str.charCodeAt(i);
+      h |= 0;
+    }
+    return Math.abs(h);
+  }
+  function initialsFor(name) {
+    const clean = name.replace(/[^a-zA-Z0-9]/g, "");
+    return clean.slice(0, 2).toUpperCase() || "??";
+  }
+  function renderAvatar(el, streamer) {
+    if (streamer.imageUrl) {
+      el.style.background = "none";
+      el.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = streamer.imageUrl;
+      img.alt = streamer.name;
+      img.loading = "lazy";
+      img.onerror = () => {
+        // Bild kaputt/nicht erreichbar -> auf Initialen zurückfallen
+        delete streamer.imageUrl;
+        renderAvatar(el, streamer);
+      };
+      el.appendChild(img);
+      return;
+    }
+    const idx = hashString(streamer.name) % AVATAR_PALETTE.length;
+    const [c1, c2] = AVATAR_PALETTE[idx];
+    el.innerHTML = "";
+    el.style.background = `linear-gradient(145deg, ${c1}, ${c2})`;
+    el.textContent = initialsFor(streamer.name);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 8) SPIEL-LOGIK
+   * ------------------------------------------------------------------ */
+  function pickRandomStreamer(exclude, isRetry = false) {
+    if (state.allStreamers.length === 0) return null; // keine Daten geladen
+    const pool = state.allStreamers.filter((s) => !exclude.has(s.name));
+    if (pool.length === 0) {
+      if (isRetry) return state.allStreamers[0]; // Sicherheitsnetz gegen Endlosschleife
+      exclude.clear(); // Pool erschöpft -> Runde "recyclen"
+      return pickRandomStreamer(exclude, true);
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // Optional: mit steigender Rundenzahl ähnlichere Werte wählen (schwerer)
+  function pickChallengingStreamer(reference, exclude, difficultyLevel, isRetry = false) {
+    if (state.allStreamers.length === 0) return null; // keine Daten geladen
+    const pool = state.allStreamers.filter((s) => !exclude.has(s.name));
+    if (pool.length === 0) {
+      if (isRetry) return state.allStreamers[0]; // Sicherheitsnetz gegen Endlosschleife
+      exclude.clear();
+      return pickChallengingStreamer(reference, exclude, difficultyLevel, true);
+    }
+    if (!state.settings.difficulty || difficultyLevel <= 0) {
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+    // Sortiere nach Nähe zum Referenzwert, wähle aus den "nächsten" N,
+    // wobei N mit der Schwierigkeit sinkt (aber nie < 3, für Zufälligkeit).
+    const refVal = reference[state.compareMode];
+    const sorted = [...pool].sort(
+      (a, b) => Math.abs(a[state.compareMode] - refVal) - Math.abs(b[state.compareMode] - refVal)
+    );
+    const windowSize = Math.max(3, Math.floor(pool.length * Math.max(0.15, 1 - difficultyLevel * 0.12)));
+    const candidates = sorted.slice(0, windowSize);
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  function startGame() {
+    state.compareMode = document.querySelector('input[name="compareMode"]').value;
+    state.roundsTotal = parseInt($("#roundSelect").value, 10);
+    state.currentRound = 1;
+    state.score = 0;
+    state.streak = 0;
+    state.correctCount = 0;
+    state.usedNames = new Set();
+    state.busy = false;
+
+    $("#compare-label").textContent = UNIT_LABEL[state.compareMode];
+    $("#unit-left").textContent = UNIT_LABEL[state.compareMode];
+    $("#unit-right").textContent = UNIT_LABEL[state.compareMode];
+
+    state.left = pickRandomStreamer(state.usedNames);
+    state.usedNames.add(state.left.name);
+    nextRightStreamer(true);
+
+    updateHud();
+    renderRound(true);
+    showScreen("game");
+  }
+
+  function nextRightStreamer(isFirst = false) {
+    const difficultyLevel = state.settings.difficulty
+      ? Math.min(4, Math.floor((state.currentRound - 1) / 3))
+      : 0;
+    state.right = pickChallengingStreamer(state.left, state.usedNames, difficultyLevel);
+    state.usedNames.add(state.right.name);
+  }
+
+  function updateHud() {
+    $("#stat-score").textContent = state.score;
+    $("#stat-streak").textContent = state.streak;
+    $("#stat-highscore").textContent = getHighscore(state.compareMode).score;
+    $("#stat-round").textContent =
+      state.roundsTotal === 0 ? `${state.currentRound}/∞` : `${state.currentRound}/${state.roundsTotal}`;
+  }
+
+  function formatNumber(n) {
+    return n.toLocaleString("de-DE");
+  }
+
+  function renderRound(isFirst) {
+    const leftCard = $("#card-left");
+    const rightCard = $("#card-right");
+
+    renderAvatar($("#avatar-left"), state.left);
+    $("#name-left").textContent = state.left.name;
+    $("#category-left").textContent = state.left.category;
+    $("#value-left").textContent = formatNumber(state.left[state.compareMode]);
+    $("#value-left").classList.remove("mystery");
+
+    renderAvatar($("#avatar-right"), state.right);
+    $("#name-right").textContent = state.right.name;
+    $("#category-right").textContent = state.right.category;
+    const valRight = $("#value-right");
+    valRight.textContent = "???";
+    valRight.classList.add("mystery");
+
+    $("#result-flash").classList.remove("show", "correct", "wrong");
+
+    if (!isFirst) {
+      rightCard.classList.remove("slide-in");
+      void rightCard.offsetWidth; // reflow, damit Animation neu triggert
+      rightCard.classList.add("slide-in");
+    }
+  }
+
+  function animateCounter(el, from, to, duration = 700) {
+    const start = performance.now();
+    function tick(now) {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = Math.round(from + (to - from) * eased);
+      el.textContent = formatNumber(value);
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = formatNumber(to);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function handleGuess(direction) {
+    if (state.busy || !state.left || !state.right) return;
+    state.busy = true;
+    playClick();
+
+    const leftVal = state.left[state.compareMode];
+    const rightVal = state.right[state.compareMode];
+    const actuallyHigher = rightVal >= leftVal;
+    const guessedHigher = direction === "higher";
+    const isCorrect = guessedHigher === actuallyHigher;
+
+    const valRight = $("#value-right");
+    valRight.classList.remove("mystery");
+    animateCounter(valRight, 0, rightVal, 750);
+
+    setTimeout(() => {
+      const flash = $("#result-flash");
+      const rightCard = $("#card-right");
+      flash.textContent = isCorrect ? "✔ Richtig" : "✘ Falsch";
+      flash.classList.add("show", isCorrect ? "correct" : "wrong");
+
+      if (isCorrect) {
+        state.score += 1;
+        state.streak += 1;
+        state.correctCount += 1;
+        playCorrect();
+        rightCard.classList.add("card-flip");
+        $("#sr-live").textContent = `Richtig. ${state.right.name} hatte ${formatNumber(rightVal)} ${UNIT_LABEL[state.compareMode]}.`;
+      } else {
+        state.streak = 0;
+        playWrong();
+        rightCard.classList.add("shake");
+        $("#sr-live").textContent = `Falsch. ${state.right.name} hatte ${formatNumber(rightVal)} ${UNIT_LABEL[state.compareMode]}.`;
+      }
+      updateHud();
+
+      setTimeout(() => {
+        rightCard.classList.remove("card-flip", "shake");
+        if (!isCorrect) {
+          endGame();
+          return;
+        }
+        advanceRound();
+      }, 1000);
+    }, 780);
+  }
+
+  function advanceRound() {
+    if (state.roundsTotal !== 0 && state.currentRound >= state.roundsTotal) {
+      endGame(true);
+      return;
+    }
+    state.currentRound += 1;
+    state.left = state.right;
+    nextRightStreamer();
+    updateHud();
+    renderRound(false);
+    state.busy = false;
+  }
+
+  function endGame(completedAllRounds = false) {
+    const totalAttempts = state.correctCount + (completedAllRounds ? 0 : 1);
+    const accuracy = totalAttempts > 0 ? Math.round((state.correctCount / totalAttempts) * 100) : 0;
+    const roundsLabel = state.roundsTotal === 0 ? "Endlos" : String(state.roundsTotal);
+    const isNewHighscore = setHighscoreIfBetter(state.compareMode, state.score, roundsLabel);
+
+    $("#go-eyebrow").textContent = completedAllRounds ? "Alle Runden geschafft" : "Falsch geraten";
+    $("#go-score").textContent = state.score;
+    $("#go-accuracy").textContent = accuracy + "%";
+    $("#go-highscore").textContent = getHighscore(state.compareMode).score;
+    $("#go-newrecord").style.visibility = isNewHighscore && state.score > 0 ? "visible" : "hidden";
+
+    showScreen("gameover");
+    if (isNewHighscore && state.score > 0) fireConfetti();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 9) KONFETTI (leichtgewichtiges Canvas-Partikelsystem)
+   * ------------------------------------------------------------------ */
+  function fireConfetti() {
+    const canvas = $("#confetti-canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.display = "block";
+
+    const colors = ["#9146FF", "#ff3d81", "#00d9a3", "#ffb84d", "#3d9bff"];
+    const particles = Array.from({ length: 120 }, () => ({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * canvas.height * 0.3,
+      w: 6 + Math.random() * 6,
+      h: 8 + Math.random() * 10,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vy: 2 + Math.random() * 3,
+      vx: -1.5 + Math.random() * 3,
+      rot: Math.random() * 360,
+      vr: -6 + Math.random() * 12,
+    }));
+
+    let frame = 0;
+    const maxFrames = 220;
+    function tick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rot * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      frame++;
+      if (frame < maxFrames) requestAnimationFrame(tick);
+      else canvas.style.display = "none";
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 10) BESTENLISTE
+   * ------------------------------------------------------------------ */
+  function renderLeaderboard() {
+    const all = loadJSON(STORAGE_KEYS.highscores, {});
+    const list = $("#leaderboard-list");
+    list.innerHTML = "";
+    const modes = ["followers", "averageViewers"];
+    let hasAny = false;
+    modes.forEach((mode) => {
+      const entry = all[mode];
+      if (!entry) return;
+      hasAny = true;
+      const div = document.createElement("div");
+      div.className = "lb-item";
+      const dateStr = entry.date ? new Date(entry.date).toLocaleDateString("de-DE") : "";
+      div.innerHTML = `
+        <div class="lb-mode">
+          <div class="lb-mode-name">${UNIT_LABEL[mode]}</div>
+          <div class="lb-mode-date">Runde: ${entry.round} · ${dateStr}</div>
+        </div>
+        <div class="lb-score">${entry.score}</div>`;
+      list.appendChild(div);
+    });
+    if (!hasAny) {
+      list.innerHTML = `<p class="lb-empty">Noch keine Highscores – spiel eine Runde!</p>`;
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 11) STREAMER-ÜBERSICHT / SUCHE
+   * ------------------------------------------------------------------ */
+  function renderBrowseList(filter = "") {
+    const list = $("#browse-list");
+    list.innerHTML = "";
+    const q = filter.trim().toLowerCase();
+    const sorted = [...state.allStreamers].sort((a, b) => b.followers - a.followers);
+    const filtered = q ? sorted.filter((s) => s.name.toLowerCase().includes(q)) : sorted;
+
+    if (filtered.length === 0) {
+      list.innerHTML = `<p class="browse-empty">Keine Streamer gefunden.</p>`;
+      return;
+    }
+
+    filtered.forEach((s) => {
+      const item = document.createElement("div");
+      item.className = "browse-item";
+      const avatarDiv = document.createElement("div");
+      avatarDiv.className = "avatar";
+      renderAvatar(avatarDiv, s);
+      item.appendChild(avatarDiv);
+
+      const info = document.createElement("div");
+      info.className = "browse-info";
+      info.innerHTML = `
+        <div class="browse-name">${escapeHtml(s.name)}</div>
+        <div class="browse-cat">${escapeHtml(s.category)} · <a class="browse-link" href="${s.twitchUrl}" target="_blank" rel="noopener">Kanal</a></div>`;
+      item.appendChild(info);
+
+      const stats = document.createElement("div");
+      stats.className = "browse-stats";
+      stats.innerHTML = `<b>${formatNumber(s.followers)}</b>Follower<br><b>${formatNumber(s.averageViewers)}</b>Ø Zuschauer`;
+      item.appendChild(stats);
+
+      list.appendChild(item);
+    });
+  }
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 12) TEILEN
+   * ------------------------------------------------------------------ */
+  async function shareResult() {
+    const text = `Ich habe ${state.score} Punkte bei Höher Tiefer – Deutsche Twitch Streamer erreicht (${UNIT_LABEL[state.compareMode]})! 🎮`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ text, title: "Höher Tiefer – Twitch Streamer" });
+        return;
+      } catch { /* Nutzer hat Teilen abgebrochen */ }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      $("#sr-live").textContent = "Ergebnis in die Zwischenablage kopiert.";
+      const btn = $("#btn-share");
+      const original = btn.textContent;
+      btn.textContent = "Kopiert! ✓";
+      setTimeout(() => (btn.textContent = original), 1600);
+    } catch {
+      $("#sr-live").textContent = text;
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 13) EVENT-HANDLER / INIT
+   * ------------------------------------------------------------------ */
+  function wireEvents() {
+    $("#btn-start").addEventListener("click", () => { playClick(); startGame(); });
+
+    $("#card-left").addEventListener("click", () => handleGuess("lower"));
+    $("#card-right").addEventListener("click", () => handleGuess("higher"));
+    [$("#card-left"), $("#card-right")].forEach((card) => {
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          card.click();
+        }
+      });
+    });
+
+    $("#btn-quit").addEventListener("click", () => { showScreen("menu"); });
+    $("#btn-menu").addEventListener("click", () => showScreen("menu"));
+    $("#btn-again").addEventListener("click", () => { playClick(); startGame(); });
+    $("#btn-share").addEventListener("click", shareResult);
+
+    $("#btn-leaderboard").addEventListener("click", () => { renderLeaderboard(); showScreen("leaderboard"); });
+    $("#btn-browse").addEventListener("click", () => { renderBrowseList(); showScreen("browse"); });
+    document.querySelectorAll("[data-back]").forEach((btn) =>
+      btn.addEventListener("click", () => showScreen("menu"))
+    );
+
+    $("#browse-search").addEventListener("input", (e) => renderBrowseList(e.target.value));
+
+    // Einstellungen
+    $("#btn-settings").addEventListener("click", () => $("#modal-settings").classList.add("open"));
+    $("#btn-close-settings").addEventListener("click", () => $("#modal-settings").classList.remove("open"));
+    $("#modal-settings").addEventListener("click", (e) => {
+      if (e.target.id === "modal-settings") $("#modal-settings").classList.remove("open");
+    });
+    $("#toggle-sound").addEventListener("change", (e) => {
+      state.settings.sound = e.target.checked;
+      saveSettings();
+      updateSoundIcon();
+    });
+    $("#toggle-difficulty").addEventListener("change", (e) => {
+      state.settings.difficulty = e.target.checked;
+      saveSettings();
+    });
+    $("#btn-reset").addEventListener("click", () => {
+      if (confirm("Alle Highscores wirklich zurücksetzen?")) {
+        localStorage.removeItem(STORAGE_KEYS.highscores);
+        renderLeaderboard();
+      }
+    });
+    $("#btn-mute").addEventListener("click", () => {
+      state.settings.sound = !state.settings.sound;
+      $("#toggle-sound").checked = state.settings.sound;
+      saveSettings();
+      updateSoundIcon();
+    });
+
+    $("#btn-twitch-connect").addEventListener("click", () => {
+      if (localStorage.getItem(TWITCH_TOKEN_KEY)) {
+        disconnectTwitch();
+      } else {
+        initiateTwitchLogin();
+      }
+    });
+
+    // Tastatursteuerung
+    document.addEventListener("keydown", (e) => {
+      if (screens.game.classList.contains("active")) {
+        if (e.key === "ArrowLeft") { e.preventDefault(); handleGuess("lower"); }
+        else if (e.key === "ArrowRight") { e.preventDefault(); handleGuess("higher"); }
+      } else if (screens.menu.classList.contains("active") && e.key === "Enter") {
+        startGame();
+      }
+    });
+  }
+
+  function init() {
+    loadSettings();
+    loadStreamers();
+    wireEvents();
+    updateHud();
+    updateTwitchStatus(!!localStorage.getItem(TWITCH_TOKEN_KEY));
+    fetchTwitchAvatars();
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+
+</script>
+</body>
+</html>
